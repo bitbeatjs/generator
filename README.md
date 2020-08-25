@@ -16,4 +16,4 @@ for more information.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE.md)
