@@ -1,0 +1,30 @@
+{
+  "name": "generator-bitbeat",
+  "version": "0.0.1",
+  "description": "Yeoman generator for bitbeat",
+  "author": "Oliver Freudrich <info@oliverfreudrich.com> (https://oliverfreudrich.com)",
+  "license": "MIT",
+  "main": "generators/app/index.js",
+  "engines": {
+    "node": ">=10"
+  },
+  "files": [
+    "generators"
+  ],
+  "keywords": [
+    "yeoman-generator",
+    "bitbeat",
+    "bitbeatjs"
+  ],
+  "repository": "bitbeatjs/generator",
+  "scripts": {},
+  "dependencies": {
+    "js-beautify": "^1.13.0",
+    "yeoman-generator": "^4.11.0"
+  },
+  "bugs": {
+    "url": "https://github.com/bitbeatjs/generator/issues"
+  },
+  "homepage": "https://github.com/bitbeatjs/generator#readme",
+  "devDependencies": {}
+}

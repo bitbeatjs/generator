@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "allowJs": true,
+    "module": "commonjs",
+    "target": "es6",
+    "lib": ["es2017"],
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "files": [
+    "boot.ts"
+  ],
+  "exclude": [
+    "./node_modules"
+  ],
+  "include": [
+    "./actions",
+    "./initializers",
+    "./connectors",
+    "./config",
+    "./middlewares",
+    "./servers",
+    "./tasks",
+    "./utils"
+  ]
+}
