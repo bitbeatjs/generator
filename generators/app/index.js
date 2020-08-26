@@ -1,6 +1,12 @@
 const Generator = require('yeoman-generator');
 const { mkdirSync, readdirSync } = require('fs');
 const beautify = require('js-beautify').js;
+const https = require('https');
+const { exec } = require('child_process');
+const packageJson = require('../../package.json');
+const chalk = require('chalk');
+const ora = require('ora');
+let spinner;
 
 module.exports = class extends Generator {
   async prompting() {
@@ -12,6 +18,60 @@ module.exports = class extends Generator {
           message: 'Using npm or yarn?',
           default: 'npm' // Default to npm
         },
+        {
+          type: 'confirm',
+          name: 'localRegistry',
+          message: 'Using your local registry config instead of the global npm registry?',
+          default: true // Default to npm
+        },
+      ]);
+
+      if (this.answers.localRegistry) {
+        this.registry = new URL(await new Promise((resolve, reject) => {
+          switch (this.answers.packageManager) {
+            case 'npm':
+              exec('npm config get registry', (error, stdout, stderr) => {
+                if (error) {
+                  reject(error);
+                }
+                if (stderr) {
+                  reject(stderr);
+                }
+                resolve(stdout);
+              });
+              break;
+            case 'yarn':
+              exec('yarn config get registry', (error, stdout, stderr) => {
+                if (error) {
+                  reject(error);
+                }
+                if (stderr) {
+                  reject(stderr);
+                }
+                resolve(stdout);
+              });
+              break;
+            default:
+          }
+        }));
+      } else {
+        this.registry = new URL('https://registry.npmjs.org/');
+      }
+
+      spinner = ora('Starting generator...').start();
+      spinner.text = 'Fetching latest version of generator...';
+      const latestGeneratorVersion = await this.checkVersion('generator-bitbeat');
+
+      if (packageJson.version < latestGeneratorVersion) {
+        spinner.text = chalk.yellow(`There is a new version available! (${chalk.red(latestGeneratorVersion)}) Run ${chalk.blue('npm remove -g generator-bitbeat')} and ${chalk.blue('npm i -g generator-bitbeat')} to update.`);
+      } else {
+        spinner.text = chalk.green('You are running the latest version of the generator. :)');
+      }
+
+      spinner.stopAndPersist({
+        symbol: chalk.green('✓'),
+      });
+      Object.assign(this.answers, await this.prompt([
         {
           type: 'input',
           name: 'name',
@@ -45,16 +105,16 @@ module.exports = class extends Generator {
         {
           type: 'confirm',
           name: 'webServer',
-          message: 'Would you like to generate a web server?',
+          message: 'Would you like to add a web server?',
           default: false,
         },
         {
           type: 'confirm',
           name: 'webSocketServer',
-          message: 'Would you like to generate a websocket server?',
+          message: 'Would you like to add a websocket server?',
           default: false,
         },
-      ]);
+      ]));
 
       if (this.answers.webSocketServer) {
         if (this.answers.webServer) {
@@ -93,135 +153,162 @@ module.exports = class extends Generator {
   _createDirectoryIfNotExist(directory) {
     try {
       readdirSync(directory);
-      this.log(`Skipped creation of ${directory}...`);
+      spinner.text = `Skipped creation of ${directory}...`;
     } catch (e) {
       mkdirSync(directory);
     }
   }
 
   _generateFolders() {
-    this.log('Generating structure...');
+    spinner.text = `Generating structure...`;
     ['actions', 'config', 'connections', 'initializers', 'middlewares', 'servers', 'tasks', 'public', 'log', 'utils'].forEach((dir) => {
       this._createDirectoryIfNotExist(dir);
     });
   }
 
-  writing() {
-    let pkgJson = {
-      name: this.answers.name,
-      version: this.answers.version,
-      description: this.answers.description,
-      scripts: {
-        start: 'node ./node_modules/@bitbeat/core/bin/index.js'
-      },
-      author: this.author,
-      license: 'MIT',
-      dependencies: {
-        '@bitbeat/core': '^0.0.1'
-      },
-      devDependencies: {
-        'eslint': '^6.8.0',
-        'lint-staged': '^10.0.7',
-        'prettier': '1.19.1',
-      },
-    };
+  async checkVersion(name, type = 'latest') {
+    this.registry.pathname = `/-/package/${name}/dist-tags`;
 
-    if (this.answers.placeholderDirectories) {
-      this._generateFolders();
-    }
+    return new Promise((resolve, reject) => {
+      https
+          .get(this.registry.toString(), res => {
+            if (res.statusCode === 200) {
+              let content = '';
+              res.on('data', data => (content += data));
+              res.on('end', () => {
+                // the result should be always a json with next, latest and canary
+                resolve(JSON.parse(content)[type]);
+              });
+            } else {
+              reject(`Could not fetch any version of package '${name}' from '${this.registry.host}'.`);
+            }
+          })
+          .on('error', (err) => reject(err));
+    });
+  }
 
-    if (this.answers.webServer) {
-      Object.assign(pkgJson.dependencies, {
-        '@bitbeat/web': '^0.0.1',
-      });
-    }
+  async writing() {
+    try {
+      spinner.text = 'Starting to generate new project...';
+      spinner.start();
+      spinner.text = 'Generating new package.json with latest versions...';
 
-    if (this.answers.webSocketServer) {
-      Object.assign(pkgJson.dependencies, {
-        '@bitbeat/websocket': '^0.0.1',
-      });
-    }
+      let pkgJson = {
+        name: this.answers.name,
+        version: this.answers.version,
+        description: this.answers.description,
+        scripts: {
+          start: 'node ./node_modules/@bitbeat/core/bin/index.js'
+        },
+        author: this.author,
+        license: 'MIT',
+        dependencies: {
+          '@bitbeat/core': await this.checkVersion('@bitbeat/core'),
+        },
+        devDependencies: {
+          'eslint': await this.checkVersion('eslint'),
+        },
+      };
 
-    if (this.answers.typescript) {
-      this.log('Generating typescript assets and configs...');
-
-      Object.assign(pkgJson.scripts, {
-        build: 'npx tsc',
-        watch: 'npx tsc --watch',
-      });
-
-      Object.assign(pkgJson.devDependencies, {
-        '@types/debug': '^4.1.5',
-        '@types/ioredis': '^4.17.3',
-        '@types/node': '^13.7.0',
-        '@types/node-cron': '^2.0.3',
-        '@types/pino': '^6.3.0',
-        '@typescript-eslint/eslint-plugin': '^2.24.0',
-        '@typescript-eslint/parser': '^2.24.0',
-        'typescript': '^3.8.3',
-      });
-
-      this.fs.copyTpl(
-        this.templatePath('.eslintrc.js'),
-        this.destinationPath('.eslintrc.js')
-      );
-
-      this.fs.copyTpl(
-          this.templatePath('tsconfig.json'),
-          this.destinationPath('tsconfig.json')
-      );
-    }
-
-    this.fs.extendJSON(this.destinationPath('package.json'), pkgJson);
-
-    if (this.answers.webServer || this.answers.webSocketServer) {
-      const typeScriptBootLines = [];
-      const jsBootLines = [];
-
-      if (this.answers.typescript) {
-        typeScriptBootLines.push(`import { registerBulk } from '@bitbeat/core';`);
-      } else {
-        jsBootLines.push(`const { registerBulk } =  require('@bitbeat/core');`);
+      if (this.answers.placeholderDirectories) {
+        spinner.text = 'Generating empty directories...';
+        this._generateFolders();
       }
 
       if (this.answers.webServer) {
-        const webServerImports = ['WebServer', 'WebServerConfig'];
-
-        if (this.answers.statusAction) {
-          webServerImports.push('Status');
-        }
-
-        if (this.answers.documentationAction) {
-          webServerImports.push('Documentation');
-        }
-
-        if (this.answers.typescript) {
-          typeScriptBootLines.push(`import { ${webServerImports.join(', ')} } from '@bitbeat/web';`);
-        } else {
-          jsBootLines.push(`const { ${webServerImports.join(', ')} } = require('@bitbeat/web');`);
-        }
+        spinner.text = 'Adding latest web server...';
+        Object.assign(pkgJson.dependencies, {
+          '@bitbeat/web': await this.checkVersion('@bitbeat/web'),
+        });
       }
 
       if (this.answers.webSocketServer) {
-        const webSocketServerImports = ['WebSocketServer', 'WebSocketServerConfig'];
-
-        if (this.answers.typescript) {
-          typeScriptBootLines.push(`import { ${webSocketServerImports.join(', ')} } from '@bitbeat/websocket';`);
-        } else {
-          jsBootLines.push(`const { ${webSocketServerImports.join(', ')} } = require('@bitbeat/websocket');`);
-        }
+        spinner.text = 'Adding latest web socket server...';
+        Object.assign(pkgJson.dependencies, {
+          '@bitbeat/websocket': await this.checkVersion('@bitbeat/websocket'),
+        });
       }
-
-      const startUpAction = [];
 
       if (this.answers.typescript) {
-        startUpAction.push('export default async () => {');
-      } else {
-        startUpAction.push('module.exports = async () => {');
+        spinner.text = 'Generating typescript assets and configs...';
+
+        Object.assign(pkgJson.scripts, {
+          build: 'npx tsc',
+          watch: 'npx tsc --watch',
+        });
+
+        Object.assign(pkgJson.devDependencies, {
+          '@types/debug': await this.checkVersion('@types/debug'),
+          '@types/ioredis': await this.checkVersion('@types/ioredis'),
+          '@types/node': await this.checkVersion('@types/node'),
+          '@types/node-cron': await this.checkVersion('@types/node-cron'),
+          '@types/pino': await this.checkVersion('@types/pino'),
+          '@typescript-eslint/eslint-plugin': await this.checkVersion('@typescript-eslint/eslint-plugin'),
+          '@typescript-eslint/parser': await this.checkVersion('@typescript-eslint/parser'),
+          'typescript': await this.checkVersion('typescript'),
+        });
+
+        this.fs.copyTpl(
+            this.templatePath('.eslintrc.js'),
+            this.destinationPath('.eslintrc.js')
+        );
+
+        this.fs.copyTpl(
+            this.templatePath('tsconfig.json'),
+            this.destinationPath('tsconfig.json')
+        );
       }
 
-      if (this.answers.webSocketServerUnify) {
-        startUpAction.push(`
+      this.fs.extendJSON(this.destinationPath('package.json'), pkgJson);
+
+      if (this.answers.webServer || this.answers.webSocketServer) {
+        const typeScriptBootLines = [];
+        const jsBootLines = [];
+
+        if (this.answers.typescript) {
+          typeScriptBootLines.push(`import { registerBulk } from '@bitbeat/core';`);
+        } else {
+          jsBootLines.push(`const { registerBulk } =  require('@bitbeat/core');`);
+        }
+
+        if (this.answers.webServer) {
+          const webServerImports = ['WebServer', 'WebServerConfig'];
+
+          if (this.answers.statusAction) {
+            webServerImports.push('Status');
+          }
+
+          if (this.answers.documentationAction) {
+            webServerImports.push('Documentation');
+          }
+
+          if (this.answers.typescript) {
+            typeScriptBootLines.push(`import { ${webServerImports.join(', ')} } from '@bitbeat/web';`);
+          } else {
+            jsBootLines.push(`const { ${webServerImports.join(', ')} } = require('@bitbeat/web');`);
+          }
+        }
+
+        if (this.answers.webSocketServer) {
+          const webSocketServerImports = ['WebSocketServer', 'WebSocketServerConfig'];
+
+          if (this.answers.typescript) {
+            typeScriptBootLines.push(`import { ${webSocketServerImports.join(', ')} } from '@bitbeat/websocket';`);
+          } else {
+            jsBootLines.push(`const { ${webSocketServerImports.join(', ')} } = require('@bitbeat/websocket');`);
+          }
+        }
+
+        const startUpAction = [];
+
+        if (this.answers.typescript) {
+          startUpAction.push('export default async () => {');
+        } else {
+          startUpAction.push('module.exports = async () => {');
+        }
+
+        if (this.answers.webSocketServerUnify) {
+          startUpAction.push(`
         const webServer = new WebServer();
 
         // attach the websocket to the web server
@@ -237,79 +324,88 @@ module.exports = class extends Generator {
             };
         };
         `);
-      }
+        }
 
-      const registers = [];
+        const registers = [];
 
-      if (this.answers.webServer) {
-        registers.push(`{
+        if (this.answers.webServer) {
+          registers.push(`{
             instance: WebServerConfig,
             createInstance: true,
           }`);
 
-        if (this.answers.webSocketServerUnify) {
-          registers.push(`{
+          if (this.answers.webSocketServerUnify) {
+            registers.push(`{
             instance: webServer,
           }`);
-        } else {
-          registers.push(`{
+          } else {
+            registers.push(`{
             instance: WebServer,
             createInstance: true,
           }`);
+          }
         }
-      }
 
-      if (this.answers.webSocketServer) {
-        registers.push(`{
+        if (this.answers.webSocketServer) {
+          registers.push(`{
           instance: WebSocketServerConfig,
           createInstance: true,
         }`);
-        registers.push(`{
+          registers.push(`{
           instance: WebSocketServer,
           createInstance: true,
         }`);
-      }
+        }
 
-      if (this.answers.statusAction) {
-        registers.push(`{
+        if (this.answers.statusAction) {
+          registers.push(`{
           instance: Status,
           createInstance: true,
         }`);
-      }
+        }
 
-      if (this.answers.documentationAction) {
-        registers.push(`{
+        if (this.answers.documentationAction) {
+          registers.push(`{
           instance: Documentation,
           createInstance: true,
         }`);
-      }
+        }
 
-      startUpAction.push(`
+        startUpAction.push(`
         await registerBulk(
           new Set([${registers.join(',\n')}])
         );
       `);
-      startUpAction.push(`};`);
+        startUpAction.push(`};`);
 
-      if (this.answers.typescript) {
-        typeScriptBootLines.push(startUpAction.join('\n'));
-        this.fs.write(
-            this.destinationPath('boot.ts'),
-            beautify(typeScriptBootLines.join('\n'), {
-              indent_size: 2,
-              space_in_empty_paren: true
-            })
-        );
-      } else {
-        jsBootLines.push(startUpAction.join('\n'));
-        this.fs.write(
-            this.destinationPath('boot.js'),
-            beautify(jsBootLines.join('\n'), {
-              indent_size: 2,
-              space_in_empty_paren: true
-            })
-        );
+        if (this.answers.typescript) {
+          typeScriptBootLines.push(startUpAction.join('\n'));
+          this.fs.write(
+              this.destinationPath('boot.ts'),
+              beautify(typeScriptBootLines.join('\n'), {
+                indent_size: 2,
+                space_in_empty_paren: true
+              })
+          );
+        } else {
+          jsBootLines.push(startUpAction.join('\n'));
+          this.fs.write(
+              this.destinationPath('boot.js'),
+              beautify(jsBootLines.join('\n'), {
+                indent_size: 2,
+                space_in_empty_paren: true
+              })
+          );
+        }
       }
+
+      spinner.stop();
+    } catch (e) {
+      spinner.text = chalk.red(e.toString());
+      spinner.stopAndPersist({
+        symbol: chalk.red('⨯'),
+      });
+      process.exit(1);
     }
   }
 
