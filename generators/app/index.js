@@ -60,7 +60,7 @@ module.exports = class extends Generator {
 
       spinner = ora('Starting generator...').start();
       spinner.text = 'Fetching latest version of generator...';
-      const latestGeneratorVersion = await this.checkVersion('generator-bitbeat');
+      const latestGeneratorVersion = await this._checkVersion('generator-bitbeat');
 
       if (packageJson.version < latestGeneratorVersion) {
         spinner.text = chalk.yellow(`There is a new version available! (${chalk.red(latestGeneratorVersion)}) Run ${chalk.blue('npm remove -g generator-bitbeat')} and ${chalk.blue('npm i -g generator-bitbeat')} to update.`);
@@ -166,7 +166,7 @@ module.exports = class extends Generator {
     });
   }
 
-  async checkVersion(name, type = 'latest') {
+  async _checkVersion(name, type = 'latest') {
     this.registry.pathname = `/-/package/${name}/dist-tags`;
 
     return new Promise((resolve, reject) => {
@@ -203,10 +203,10 @@ module.exports = class extends Generator {
         author: this.author,
         license: 'MIT',
         dependencies: {
-          '@bitbeat/core': await this.checkVersion('@bitbeat/core'),
+          '@bitbeat/core': await this._checkVersion('@bitbeat/core'),
         },
         devDependencies: {
-          'eslint': await this.checkVersion('eslint'),
+          'eslint': await this._checkVersion('eslint'),
         },
       };
 
@@ -218,14 +218,14 @@ module.exports = class extends Generator {
       if (this.answers.webServer) {
         spinner.text = 'Adding latest web server...';
         Object.assign(pkgJson.dependencies, {
-          '@bitbeat/web': await this.checkVersion('@bitbeat/web'),
+          '@bitbeat/web': await this._checkVersion('@bitbeat/web'),
         });
       }
 
       if (this.answers.webSocketServer) {
         spinner.text = 'Adding latest web socket server...';
         Object.assign(pkgJson.dependencies, {
-          '@bitbeat/websocket': await this.checkVersion('@bitbeat/websocket'),
+          '@bitbeat/websocket': await this._checkVersion('@bitbeat/websocket'),
         });
       }
 
@@ -238,14 +238,14 @@ module.exports = class extends Generator {
         });
 
         Object.assign(pkgJson.devDependencies, {
-          '@types/debug': await this.checkVersion('@types/debug'),
-          '@types/ioredis': await this.checkVersion('@types/ioredis'),
-          '@types/node': await this.checkVersion('@types/node'),
-          '@types/node-cron': await this.checkVersion('@types/node-cron'),
-          '@types/pino': await this.checkVersion('@types/pino'),
-          '@typescript-eslint/eslint-plugin': await this.checkVersion('@typescript-eslint/eslint-plugin'),
-          '@typescript-eslint/parser': await this.checkVersion('@typescript-eslint/parser'),
-          'typescript': await this.checkVersion('typescript'),
+          '@types/debug': await this._checkVersion('@types/debug'),
+          '@types/ioredis': await this._checkVersion('@types/ioredis'),
+          '@types/node': await this._checkVersion('@types/node'),
+          '@types/node-cron': await this._checkVersion('@types/node-cron'),
+          '@types/pino': await this._checkVersion('@types/pino'),
+          '@typescript-eslint/eslint-plugin': await this._checkVersion('@typescript-eslint/eslint-plugin'),
+          '@typescript-eslint/parser': await this._checkVersion('@typescript-eslint/parser'),
+          'typescript': await this._checkVersion('typescript'),
         });
 
         this.fs.copyTpl(
