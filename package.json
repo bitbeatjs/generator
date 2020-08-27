@@ -19,7 +19,9 @@
   "repository": "bitbeatjs/generator",
   "scripts": {},
   "dependencies": {
+    "chalk": "^4.1.0",
     "js-beautify": "^1.13.0",
+    "ora": "^5.0.0",
     "yeoman-generator": "^4.11.0"
   },
   "bugs": {
