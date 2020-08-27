@@ -1,6 +1,6 @@
 {
   "name": "generator-bitbeat",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Yeoman generator for bitbeat",
   "author": "Oliver Freudrich <info@oliverfreudrich.com> (https://oliverfreudrich.com)",
   "license": "MIT",
