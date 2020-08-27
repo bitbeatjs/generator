@@ -227,6 +227,10 @@ module.exports = class extends Generator {
         Object.assign(pkgJson.dependencies, {
           '@bitbeat/websocket': await this._checkVersion('@bitbeat/websocket'),
         });
+
+        Object.assign(pkgJson.devDependencies, {
+          '@types/ws': await this._checkVersion('@types/ws'),
+        });
       }
 
       if (this.answers.typescript) {
