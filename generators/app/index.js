@@ -243,7 +243,6 @@ module.exports = class extends Generator {
 
         Object.assign(pkgJson.devDependencies, {
           '@types/debug': await this._checkVersion('@types/debug'),
-          '@types/ioredis': await this._checkVersion('@types/ioredis'),
           '@types/node': await this._checkVersion('@types/node'),
           '@types/node-cron': await this._checkVersion('@types/node-cron'),
           '@types/pino': await this._checkVersion('@types/pino'),
