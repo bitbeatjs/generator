@@ -332,46 +332,26 @@ module.exports = class extends Generator {
         const registers = [];
 
         if (this.answers.webServer) {
-          registers.push(`{
-            instance: WebServerConfig,
-            createInstance: true,
-          }`);
+          registers.push(`WebServerConfig`);
 
           if (this.answers.webSocketServerUnify) {
-            registers.push(`{
-            instance: webServer,
-          }`);
+            registers.push(`webServer`);
           } else {
-            registers.push(`{
-            instance: WebServer,
-            createInstance: true,
-          }`);
+            registers.push(`WebServer`);
           }
         }
 
         if (this.answers.webSocketServer) {
-          registers.push(`{
-          instance: WebSocketServerConfig,
-          createInstance: true,
-        }`);
-          registers.push(`{
-          instance: WebSocketServer,
-          createInstance: true,
-        }`);
+          registers.push(`WebSocketServerConfig`);
+          registers.push(`WebSocketServer`);
         }
 
         if (this.answers.statusAction) {
-          registers.push(`{
-          instance: Status,
-          createInstance: true,
-        }`);
+          registers.push(`Status`);
         }
 
         if (this.answers.documentationAction) {
-          registers.push(`{
-          instance: Documentation,
-          createInstance: true,
-        }`);
+          registers.push(`Documentation`);
         }
 
         startUpAction.push(`
