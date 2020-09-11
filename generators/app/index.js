@@ -198,7 +198,7 @@ module.exports = class extends Generator {
         version: this.answers.version,
         description: this.answers.description,
         scripts: {
-          start: 'node ./node_modules/@bitbeat/core/bin/index.js'
+          start: 'npx @bitbeat/core start'
         },
         author: this.author,
         license: 'MIT',
