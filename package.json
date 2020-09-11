@@ -14,7 +14,11 @@
   "keywords": [
     "yeoman-generator",
     "bitbeat",
-    "bitbeatjs"
+    "bitbeatjs",
+    "framework",
+    "modular",
+    "backend",
+    "minimal"
   ],
   "repository": "bitbeatjs/generator",
   "scripts": {},
