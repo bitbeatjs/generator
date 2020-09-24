@@ -1,8 +1,13 @@
 const Generator = require('yeoman-generator');
-const { mkdirSync, readdirSync } = require('fs');
+const {
+  mkdirSync,
+  readdirSync
+} = require('fs');
 const beautify = require('js-beautify').js;
 const https = require('https');
-const { exec } = require('child_process');
+const {
+  exec
+} = require('child_process');
 const packageJson = require('../../package.json');
 const chalk = require('chalk');
 const ora = require('ora');
@@ -11,8 +16,7 @@ let spinner;
 module.exports = class extends Generator {
   async prompting() {
     try {
-      this.answers = await this.prompt([
-        {
+      this.answers = await this.prompt([{
           type: 'input',
           name: 'packageManager',
           message: 'Using npm or yarn?',
@@ -60,7 +64,7 @@ module.exports = class extends Generator {
 
       spinner = ora('Starting generator...').start();
       spinner.text = 'Fetching latest version of generator...';
-      const latestGeneratorVersion = `^${await this._checkVersion('generator-bitbeat')}`;
+      const latestGeneratorVersion = `${await this._checkVersion('generator-bitbeat')}`;
 
       if (packageJson.version < latestGeneratorVersion) {
         spinner.text = chalk.yellow(`There is a new version available! (${chalk.red(latestGeneratorVersion)}) Run ${chalk.blue('npm remove -g generator-bitbeat')} and ${chalk.blue('npm i -g generator-bitbeat')} to update.`);
@@ -71,8 +75,7 @@ module.exports = class extends Generator {
       spinner.stopAndPersist({
         symbol: chalk.green('✓'),
       });
-      Object.assign(this.answers, await this.prompt([
-        {
+      Object.assign(this.answers, await this.prompt([{
           type: 'input',
           name: 'name',
           message: 'Your project name',
@@ -118,32 +121,26 @@ module.exports = class extends Generator {
 
       if (this.answers.webSocketServer) {
         if (this.answers.webServer) {
-          Object.assign(this.answers, await this.prompt([
-            {
-              type: 'confirm',
-              name: 'webSocketServerUnify',
-              message: 'Would you like to run the websocket server on the web server port?'
-            }
-          ]));
+          Object.assign(this.answers, await this.prompt([{
+            type: 'confirm',
+            name: 'webSocketServerUnify',
+            message: 'Would you like to run the websocket server on the web server port?'
+          }]));
         }
       }
 
       if (this.answers.webServer) {
-        Object.assign(this.answers, await this.prompt([
-          {
-            type: 'confirm',
-            name: 'statusAction',
-            message: 'Would you like to add a status action for the servers?'
-          }
-        ]));
+        Object.assign(this.answers, await this.prompt([{
+          type: 'confirm',
+          name: 'statusAction',
+          message: 'Would you like to add a status action for the servers?'
+        }]));
 
-        Object.assign(this.answers, await this.prompt([
-          {
-            type: 'confirm',
-            name: 'documentationAction',
-            message: 'Would you like to add a documentation action for the servers?'
-          }
-        ]));
+        Object.assign(this.answers, await this.prompt([{
+          type: 'confirm',
+          name: 'documentationAction',
+          message: 'Would you like to add a documentation action for the servers?'
+        }]));
       }
     } catch (e) {
       throw e;
@@ -171,19 +168,19 @@ module.exports = class extends Generator {
 
     return new Promise((resolve, reject) => {
       https
-          .get(this.registry.toString(), res => {
-            if (res.statusCode === 200) {
-              let content = '';
-              res.on('data', data => (content += data));
-              res.on('end', () => {
-                // the result should be always a json with next, latest and canary
-                resolve(JSON.parse(content)[type]);
-              });
-            } else {
-              reject(`Could not fetch any version of package '${name}' from '${this.registry.host}'.`);
-            }
-          })
-          .on('error', (err) => reject(err));
+        .get(this.registry.toString(), res => {
+          if (res.statusCode === 200) {
+            let content = '';
+            res.on('data', data => (content += data));
+            res.on('end', () => {
+              // the result should be always a json with next, latest and canary
+              resolve(JSON.parse(content)[type]);
+            });
+          } else {
+            reject(`Could not fetch any version of package '${name}' from '${this.registry.host}'.`);
+          }
+        })
+        .on('error', (err) => reject(err));
     });
   }
 
@@ -252,13 +249,13 @@ module.exports = class extends Generator {
         });
 
         this.fs.copyTpl(
-            this.templatePath('.eslintrc.js'),
-            this.destinationPath('.eslintrc.js')
+          this.templatePath('.eslintrc.js'),
+          this.destinationPath('.eslintrc.js')
         );
 
         this.fs.copyTpl(
-            this.templatePath('tsconfig.json'),
-            this.destinationPath('tsconfig.json')
+          this.templatePath('tsconfig.json'),
+          this.destinationPath('tsconfig.json')
         );
       }
 
@@ -364,20 +361,20 @@ module.exports = class extends Generator {
         if (this.answers.typescript) {
           typeScriptBootLines.push(startUpAction.join('\n'));
           this.fs.write(
-              this.destinationPath('boot.ts'),
-              beautify(typeScriptBootLines.join('\n'), {
-                indent_size: 2,
-                space_in_empty_paren: true
-              })
+            this.destinationPath('boot.ts'),
+            beautify(typeScriptBootLines.join('\n'), {
+              indent_size: 2,
+              space_in_empty_paren: true
+            })
           );
         } else {
           jsBootLines.push(startUpAction.join('\n'));
           this.fs.write(
-              this.destinationPath('boot.js'),
-              beautify(jsBootLines.join('\n'), {
-                indent_size: 2,
-                space_in_empty_paren: true
-              })
+            this.destinationPath('boot.js'),
+            beautify(jsBootLines.join('\n'), {
+              indent_size: 2,
+              space_in_empty_paren: true
+            })
           );
         }
       }
